@@ -28,6 +28,14 @@ try:
     df_alimentos = pd.read_excel("alimentos.xlsx")
     df_alimentos.columns = [str(c).strip() for c in df_alimentos.columns]
 
+    # SOLUCIÓN DE RAÍZ: Limpieza masiva de ArrowString en la memoria del servidor
+    for col in df_muni.columns:
+        df_muni[col] = df_muni[col].astype(str).str.replace("[", "").str.replace("]", "").str.replace("'", "").str.strip()
+
+    for col in df_alimentos.columns:
+        df_alimentos[col] = df_alimentos[col].astype(str).str.replace("[", "").str.replace("]", "").str.replace("'", "").str.strip()
+
+    # Normalizar los nombres de las columnas clave adaptado a tu estructura
     for col in df_alimentos.columns:
         col_limpia = col.lower().replace("\n", " ").replace("\r", " ")
         if "territorialidad" in col_limpia:
@@ -46,13 +54,6 @@ try:
             df_alimentos = df_alimentos.rename(columns={col: "Hogar kg/semana"})
         if "descri" in col_limpia:
             df_alimentos = df_alimentos.rename(columns={col: "Descripción"})
-
-    df_muni["Departamento"] = df_muni["Departamento"].astype(str).str.strip()
-    df_muni["Municipio"] = df_muni["Municipio"].astype(str).str.strip()
-    df_muni["Territorialidad_Estandar"] = df_muni["Territorialidad_Estandar"].astype(str).str.strip()
-    
-    df_alimentos["Territorialidad_Estandar"] = df_alimentos["Territorialidad_Estandar"].astype(str).str.strip()
-    df_alimentos["Alimento"] = df_alimentos["Alimento"].astype(str).str.strip()
             
 except Exception as e:
     st.error(f"❌ Error leyendo archivos Excel. Detalle: {e}")
@@ -85,10 +86,9 @@ if es_correo_valido:
         lista_municipios = sorted(df_filtrado_muni["Municipio"].unique())
         municipio_sel = st.selectbox("Selecciona el Municipio *", ["---"] + lista_municipios, key="mun_box")
         if municipio_sel != "---":
-            fila_muni = df_filtrado_muni[df_filtrado_muni["Municipio"] == municipio_sel]
-            if not fila_muni.empty:
-                territorialidad = str(fila_muni["Territorialidad_Estandar"].values).replace("[", "").replace("]", "").replace("'", "").strip()
-                st.success(f"📍 **Territorialidad de tu región:** {territorialidad}")
+            # Extraemos la territorialidad como un valor purificado de texto plano
+            territorialidad = str(df_filtrado_muni.loc[df_filtrado_muni["Municipio"] == municipio_sel, "Territorialidad_Estandar"].values[0]).strip()
+            st.success(f"📍 **Territorialidad de tu región:** {territorialidad}")
 else:
     st.info("🔒 Por favor, ingresa tu correo institucional para desbloquear el formulario de ubicación y precios.")
 
@@ -96,6 +96,7 @@ st.divider()
 # --- SECCIÓN 2: ALIMENTOS ACTIVOS ---
 if es_correo_valido and territorialidad != "":
     df_region = df_alimentos[df_alimentos["Territorialidad_Estandar"] == territorialidad]
+    
     df_region["Persona gr/dia (bruto)"] = pd.to_numeric(df_region["Persona gr/dia (bruto)"], errors='coerce').fillna(0.0)
     df_region["Persona gr/semana"] = pd.to_numeric(df_region["Persona gr/semana"], errors='coerce').fillna(0.0)
     df_region["Hogar kg/semana"] = pd.to_numeric(df_region["Hogar kg/semana"], errors='coerce').fillna(0.0)
@@ -137,10 +138,6 @@ if es_correo_valido and territorialidad != "":
             st.markdown("---")
             
             datos_capturados[alimento_nombre] = {
-                "unidad": u_sel, "tienda": p_tienda, "super": p_super, "plaza": p_plaza,
-                "n_dia_bruto": n_dia_bruto, "n_sem_persona": n_sem_persona, "n_sem_hogar": n_sem_hogar,
-                "subgrupo": subgrupo, "grupo": group
-            } if 'group' in locals() else {
                 "unidad": u_sel, "tienda": p_tienda, "super": p_super, "plaza": p_plaza,
                 "n_dia_bruto": n_dia_bruto, "n_sem_persona": n_sem_persona, "n_sem_hogar": n_sem_hogar,
                 "subgrupo": subgrupo, "grupo": grupo
@@ -194,7 +191,7 @@ if es_correo_valido and territorialidad != "":
                 
                 if not errores_validacion:
                     try:
-                        # !!! CAMBIA EL TEXTO DE ABAJO ENTRE COMILLAS POR TU URL REAL DE GOOGLE APPS SCRIPT !!!
+                        # TU ENLACE OFICIAL DE CARTERO DE GOOGLE APPS SCRIPT VINCULADO DEFINITIVAMENTE:
                         url_cartero = "https://script.google.com/macros/s/AKfycbwSOZaezhfjyP5c4LUNMkACAZ02urRqmhpDClcTTvhAmkWHnXgM6LpY2Ld442BO5GKK/exec"
                         
                         respuesta = requests.post(url_cartero, json=filas_para_guardar)
@@ -209,3 +206,4 @@ if es_correo_valido and territorialidad != "":
 elif es_correo_valido:
     st.info("💡 Por favor, define el departamento y municipio para generar la lista de alimentos de tu territorialidad.")
 
+    
