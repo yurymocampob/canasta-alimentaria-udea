@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from streamlit_gsheets import GSheetsConnection
+import os
+import requests
 
 st.set_page_config(page_title="Canasta Alimentaria UdeA", page_icon="🌾", layout="centered")
 
@@ -49,6 +50,7 @@ try:
     df_muni["Departamento"] = df_muni["Departamento"].astype(str).str.strip()
     df_muni["Municipio"] = df_muni["Municipio"].astype(str).str.strip()
     df_muni["Territorialidad_Estandar"] = df_muni["Territorialidad_Estandar"].astype(str).str.strip()
+    
     df_alimentos["Territorialidad_Estandar"] = df_alimentos["Territorialidad_Estandar"].astype(str).str.strip()
     df_alimentos["Alimento"] = df_alimentos["Alimento"].astype(str).str.strip()
             
@@ -74,6 +76,7 @@ territorialidad = ""
 if es_correo_valido:
     st.success("✅ Correo institucional validado con éxito.")
     nombre_estudiante = st.text_input("Nombre Completo del Estudiante *", key="nom_est").strip()
+    
     lista_departamentos = sorted(df_muni["Departamento"].unique())
     depto_sel = st.selectbox("Selecciona el Departamento *", ["---"] + lista_departamentos, key="dep_box")
 
@@ -84,9 +87,7 @@ if es_correo_valido:
         if municipio_sel != "---":
             fila_muni = df_filtrado_muni[df_filtrado_muni["Municipio"] == municipio_sel]
             if not fila_muni.empty:
-                # --- CORRECCIÓN INDISPENSABLE PARA INTERNET ---
-                # Extraemos el valor puro de la lista forzando formato string plano
-                territorialidad = str(fila_muni["Territorialidad_Estandar"].to_list()[0]).strip()
+                territorialidad = str(fila_muni["Territorialidad_Estandar"].values).replace("[", "").replace("]", "").replace("'", "").strip()
                 st.success(f"📍 **Territorialidad de tu región:** {territorialidad}")
 else:
     st.info("🔒 Por favor, ingresa tu correo institucional para desbloquear el formulario de ubicación y precios.")
@@ -95,13 +96,10 @@ st.divider()
 # --- SECCIÓN 2: ALIMENTOS ACTIVOS ---
 if es_correo_valido and territorialidad != "":
     df_region = df_alimentos[df_alimentos["Territorialidad_Estandar"] == territorialidad]
-    
-    # Aseguramos formato numérico para las columnas de cálculo
     df_region["Persona gr/dia (bruto)"] = pd.to_numeric(df_region["Persona gr/dia (bruto)"], errors='coerce').fillna(0.0)
     df_region["Persona gr/semana"] = pd.to_numeric(df_region["Persona gr/semana"], errors='coerce').fillna(0.0)
     df_region["Hogar kg/semana"] = pd.to_numeric(df_region["Hogar kg/semana"], errors='coerce').fillna(0.0)
     
-    # Filtramos: Si el alimento tiene 0 en bruto, queda descartado de la pantalla
     df_lista_obligatoria = df_region[df_region["Persona gr/dia (bruto)"] > 0].drop_duplicates(subset=["Alimento"])
     
     if not df_lista_obligatoria.empty:
@@ -115,6 +113,7 @@ if es_correo_valido and territorialidad != "":
             grupo = fila.get("Grupo", "General")
             subgrupo = fila.get("Subgrupo", "General")
             desc_texto = str(fila.get("Descripción", "Variedad específica del producto."))
+            
             n_dia_bruto = float(fila["Persona gr/dia (bruto)"])
             n_sem_persona = float(fila["Persona gr/semana"])
             n_sem_hogar = float(fila["Hogar kg/semana"])
@@ -138,6 +137,10 @@ if es_correo_valido and territorialidad != "":
             st.markdown("---")
             
             datos_capturados[alimento_nombre] = {
+                "unidad": u_sel, "tienda": p_tienda, "super": p_super, "plaza": p_plaza,
+                "n_dia_bruto": n_dia_bruto, "n_sem_persona": n_sem_persona, "n_sem_hogar": n_sem_hogar,
+                "subgrupo": subgrupo, "grupo": group
+            } if 'group' in locals() else {
                 "unidad": u_sel, "tienda": p_tienda, "super": p_super, "plaza": p_plaza,
                 "n_dia_bruto": n_dia_bruto, "n_sem_persona": n_sem_persona, "n_sem_hogar": n_sem_hogar,
                 "subgrupo": subgrupo, "grupo": grupo
@@ -179,44 +182,30 @@ if es_correo_valido and territorialidad != "":
                     c_hogar_super = (inputs["super"] / g_comerciales) * g_sem_hogar if inputs["super"] > 0 else 0
                     c_hogar_plaza = (inputs["plaza"] / g_comerciales) * g_sem_hogar if inputs["plaza"] > 0 else 0
                     
-                    filas_para_guardar.append({
-                        "ID_Encuesta": id_encuesta, 
-                        "Fecha_Hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "Correo_Estudiante": correo_estudiante,
-                        "Estudiante": nombre_estudiante, 
-                        "Departamento": depto_sel, 
-                        "Municipio": municipio_sel,
-                        "Territorialidad": territorialidad, 
-                        "Grupo": inputs["grupo"], 
-                        "Subgrupo": inputs["subgrupo"], 
-                        "Alimento": alim,
-                        "Unidad_Medida": inputs["unidad"], 
-                        "Gramos_Unidad": g_comerciales,
-                        "Precio_Tienda": inputs["tienda"], 
-                        "Precio_Supermercado": inputs["super"], 
-                        "Precio_Plaza_Mercado": inputs["plaza"],
-                        "Persona_gr_dia_bruto": g_dia_bruto,
-                        "Persona_gr_semana": g_sem_persona,
-                        "Hogar_kg_semana": inputs["n_sem_hogar"],
-                        "Costo_Dia_Persona_Tienda": round(c_dia_tienda, 2),
-                        "Costo_Dia_Persona_Super": round(c_dia_super, 2),
-                        "Costo_Dia_Persona_Plaza": round(c_dia_plaza, 2),
-                        "Costo_Semana_Hogar_Tienda": round(c_hogar_tienda, 2),
-                        "Costo_Semana_Hogar_Super": round(c_hogar_super, 2),
-                        "Costo_Semana_Hogar_Plaza": round(c_hogar_plaza, 2)
-                    })
+                    filas_para_guardar.append([
+                        id_encuesta, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), correo_estudiante,
+                        nombre_estudiante, depto_sel, municipio_sel, territorialidad, 
+                        inputs["grupo"], inputs["subgrupo"], alim, inputs["unidad"], str(g_comerciales),
+                        str(inputs["tienda"]), str(inputs["super"]), str(inputs["plaza"]),
+                        str(g_dia_bruto), str(g_sem_persona), str(inputs["n_sem_hogar"]),
+                        str(round(c_dia_tienda, 2)), str(round(c_dia_super, 2)), str(round(c_dia_plaza, 2)),
+                        str(round(c_hogar_tienda, 2)), str(round(c_hogar_super, 2)), str(round(c_hogar_plaza, 2))
+                    ])
                 
                 if not errores_validacion:
                     try:
-                        conn = st.connection("gsheets", type=GSheetsConnection)
-                        df_existente = conn.read(ttl=0)
-                        df_bloque_nuevo = pd.DataFrame(filas_para_guardar)
-                        df_final = pd.concat([df_existente, df_bloque_nuevo], ignore_index=True)
-                        conn.update(data=df_final)
-                        st.success("🎉 ¡Excelente, Marcela! Toda la canasta regional fue guardada y enviada a tu Google Sheets en tiempo real.")
-                    except Exception as sheet_err:
-                        st.error(f"❌ Error al enviar datos a Google Sheets. Revisa la configuración de Secrets. Detalle: {sheet_err}")
+                        # !!! CAMBIA EL TEXTO DE ABAJO ENTRE COMILLAS POR TU URL REAL DE GOOGLE APPS SCRIPT !!!
+                        url_cartero = "https://script.google.com/macros/s/AKfycbwSOZaezhfjyP5c4LUNMkACAZ02urRqmhpDClcTTvhAmkWHnXgM6LpY2Ld442BO5GKK/exec"
+                        
+                        respuesta = requests.post(url_cartero, json=filas_para_guardar)
+                        if respuesta.status_code == 200:
+                            st.success("🎉 ¡Excelente, Marcela! Toda la canasta regional fue guardada y enviada a tu Google Sheets en tiempo real.")
+                        else:
+                            st.error("❌ Error al transmitir los datos. Verifica la implementación del Script.")
+                    except Exception as err:
+                        st.error(f"❌ Error de red: {err}")
     else:
         st.warning(f"⚠️ No hay alimentos con necesidad en bruto mayor a 0 gramos para la territorialidad '{territorialidad}'.")
 elif es_correo_valido:
     st.info("💡 Por favor, define el departamento y municipio para generar la lista de alimentos de tu territorialidad.")
+
