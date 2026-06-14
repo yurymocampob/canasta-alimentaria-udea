@@ -84,7 +84,9 @@ if es_correo_valido:
         if municipio_sel != "---":
             fila_muni = df_filtrado_muni[df_filtrado_muni["Municipio"] == municipio_sel]
             if not fila_muni.empty:
-                territorialidad = str(fila_muni["Territorialidad_Estandar"].values).strip()
+                # --- CORRECCIÓN INDISPENSABLE PARA INTERNET ---
+                # Extraemos el valor puro de la lista forzando formato string plano
+                territorialidad = str(fila_muni["Territorialidad_Estandar"].to_list()[0]).strip()
                 st.success(f"📍 **Territorialidad de tu región:** {territorialidad}")
 else:
     st.info("🔒 Por favor, ingresa tu correo institucional para desbloquear el formulario de ubicación y precios.")
@@ -93,10 +95,13 @@ st.divider()
 # --- SECCIÓN 2: ALIMENTOS ACTIVOS ---
 if es_correo_valido and territorialidad != "":
     df_region = df_alimentos[df_alimentos["Territorialidad_Estandar"] == territorialidad]
+    
+    # Aseguramos formato numérico para las columnas de cálculo
     df_region["Persona gr/dia (bruto)"] = pd.to_numeric(df_region["Persona gr/dia (bruto)"], errors='coerce').fillna(0.0)
     df_region["Persona gr/semana"] = pd.to_numeric(df_region["Persona gr/semana"], errors='coerce').fillna(0.0)
     df_region["Hogar kg/semana"] = pd.to_numeric(df_region["Hogar kg/semana"], errors='coerce').fillna(0.0)
     
+    # Filtramos: Si el alimento tiene 0 en bruto, queda descartado de la pantalla
     df_lista_obligatoria = df_region[df_region["Persona gr/dia (bruto)"] > 0].drop_duplicates(subset=["Alimento"])
     
     if not df_lista_obligatoria.empty:
@@ -203,7 +208,6 @@ if es_correo_valido and territorialidad != "":
                 
                 if not errores_validacion:
                     try:
-                        # CONEXIÓN OFICIAL DIRECTA A GOOGLE SHEETS
                         conn = st.connection("gsheets", type=GSheetsConnection)
                         df_existente = conn.read(ttl=0)
                         df_bloque_nuevo = pd.DataFrame(filas_para_guardar)
@@ -216,4 +220,3 @@ if es_correo_valido and territorialidad != "":
         st.warning(f"⚠️ No hay alimentos con necesidad en bruto mayor a 0 gramos para la territorialidad '{territorialidad}'.")
 elif es_correo_valido:
     st.info("💡 Por favor, define el departamento y municipio para generar la lista de alimentos de tu territorialidad.")
-
