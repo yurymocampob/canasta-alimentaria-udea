@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-import os
+from streamlit_gsheets import GSheetsConnection
 
 st.set_page_config(page_title="Canasta Alimentaria UdeA", page_icon="🌾", layout="centered")
 
@@ -27,7 +27,6 @@ try:
     df_alimentos = pd.read_excel("alimentos.xlsx")
     df_alimentos.columns = [str(c).strip() for c in df_alimentos.columns]
 
-    # Normalizar los nombres de las columnas clave adaptado a tu nueva estructura
     for col in df_alimentos.columns:
         col_limpia = col.lower().replace("\n", " ").replace("\r", " ")
         if "territorialidad" in col_limpia:
@@ -50,18 +49,16 @@ try:
     df_muni["Departamento"] = df_muni["Departamento"].astype(str).str.strip()
     df_muni["Municipio"] = df_muni["Municipio"].astype(str).str.strip()
     df_muni["Territorialidad_Estandar"] = df_muni["Territorialidad_Estandar"].astype(str).str.strip()
-    
     df_alimentos["Territorialidad_Estandar"] = df_alimentos["Territorialidad_Estandar"].astype(str).str.strip()
     df_alimentos["Alimento"] = df_alimentos["Alimento"].astype(str).str.strip()
             
 except Exception as e:
-    st.error(f"❌ Error leyendo archivos Excel. Verifica las nuevas columnas y nombres. Detalle: {e}")
+    st.error(f"❌ Error leyendo archivos Excel. Detalle: {e}")
     st.stop()
 
 st.title("🌾 Levantamiento de Precios - Canasta UdeA")
 st.write("Formulario oficial de recolección simultánea y costeo familiar/nutricional.")
 
-# --- SECCIÓN 1: AUTENTICACIÓN Y UBICACIÓN ---
 st.subheader("1. Validación Institucional y Ubicación")
 correo_estudiante = st.text_input("Correo Institucional (@udea.edu.co) *", key="corr_est").strip().lower()
 es_correo_valido = correo_estudiante.endswith("@udea.edu.co") and len(correo_estudiante) > 12
@@ -77,7 +74,6 @@ territorialidad = ""
 if es_correo_valido:
     st.success("✅ Correo institucional validado con éxito.")
     nombre_estudiante = st.text_input("Nombre Completo del Estudiante *", key="nom_est").strip()
-    
     lista_departamentos = sorted(df_muni["Departamento"].unique())
     depto_sel = st.selectbox("Selecciona el Departamento *", ["---"] + lista_departamentos, key="dep_box")
 
@@ -88,9 +84,7 @@ if es_correo_valido:
         if municipio_sel != "---":
             fila_muni = df_filtrado_muni[df_filtrado_muni["Municipio"] == municipio_sel]
             if not fila_muni.empty:
-                # --- SOLUCIÓN DE RAÍZ AQUÍ ---
-                # Extraemos el valor puro de la lista usando .values[0] de forma limpia y directa
-                territorialidad = str(fila_muni["Territorialidad_Estandar"].values[0]).strip()
+                territorialidad = str(fila_muni["Territorialidad_Estandar"].values).strip()
                 st.success(f"📍 **Territorialidad de tu región:** {territorialidad}")
 else:
     st.info("🔒 Por favor, ingresa tu correo institucional para desbloquear el formulario de ubicación y precios.")
@@ -99,13 +93,10 @@ st.divider()
 # --- SECCIÓN 2: ALIMENTOS ACTIVOS ---
 if es_correo_valido and territorialidad != "":
     df_region = df_alimentos[df_alimentos["Territorialidad_Estandar"] == territorialidad]
-    
-    # Aseguramos formato numérico para las columnas de cálculo
     df_region["Persona gr/dia (bruto)"] = pd.to_numeric(df_region["Persona gr/dia (bruto)"], errors='coerce').fillna(0.0)
     df_region["Persona gr/semana"] = pd.to_numeric(df_region["Persona gr/semana"], errors='coerce').fillna(0.0)
     df_region["Hogar kg/semana"] = pd.to_numeric(df_region["Hogar kg/semana"], errors='coerce').fillna(0.0)
     
-    # Filtramos: Si el alimento tiene 0 en bruto, queda descartado de la pantalla
     df_lista_obligatoria = df_region[df_region["Persona gr/dia (bruto)"] > 0].drop_duplicates(subset=["Alimento"])
     
     if not df_lista_obligatoria.empty:
@@ -119,8 +110,6 @@ if es_correo_valido and territorialidad != "":
             grupo = fila.get("Grupo", "General")
             subgrupo = fila.get("Subgrupo", "General")
             desc_texto = str(fila.get("Descripción", "Variedad específica del producto."))
-            
-            # Captura de tus 3 variables nutricionales
             n_dia_bruto = float(fila["Persona gr/dia (bruto)"])
             n_sem_persona = float(fila["Persona gr/semana"])
             n_sem_hogar = float(fila["Hogar kg/semana"])
@@ -173,18 +162,14 @@ if es_correo_valido and territorialidad != "":
                         break
                     
                     g_comerciales = DICCIONARIO_UNIDADES_GRAMOS[inputs["unidad"]]
-                    
-                    # Extracción de las 3 constantes nutricionales
                     g_dia_bruto = inputs["n_dia_bruto"]
                     g_sem_persona = inputs["n_sem_persona"]
-                    g_sem_hogar = inputs["n_sem_hogar"] * 1000  # Convertimos kg del hogar a gramos para el costeo
+                    g_sem_hogar = inputs["n_sem_hogar"] * 1000  
                     
-                    # COSTEO AUTOMÁTICO INDIVIDUAL / DIARIO (BRUTO)
                     c_dia_tienda = (inputs["tienda"] / g_comerciales) * g_dia_bruto if inputs["tienda"] > 0 else 0
                     c_dia_super = (inputs["super"] / g_comerciales) * g_dia_bruto if inputs["super"] > 0 else 0
                     c_dia_plaza = (inputs["plaza"] / g_comerciales) * g_dia_bruto if inputs["plaza"] > 0 else 0
                     
-                    # COSTEO AUTOMÁTICO FAMILIAR / SEMANAL (HOGAR)
                     c_hogar_tienda = (inputs["tienda"] / g_comerciales) * g_sem_hogar if inputs["tienda"] > 0 else 0
                     c_hogar_super = (inputs["super"] / g_comerciales) * g_sem_hogar if inputs["super"] > 0 else 0
                     c_hogar_plaza = (inputs["plaza"] / g_comerciales) * g_sem_hogar if inputs["plaza"] > 0 else 0
@@ -205,11 +190,9 @@ if es_correo_valido and territorialidad != "":
                         "Precio_Tienda": inputs["tienda"], 
                         "Precio_Supermercado": inputs["super"], 
                         "Precio_Plaza_Mercado": inputs["plaza"],
-                        # CONSTANTES NUTRICIONALES REPORTADAS
                         "Persona_gr_dia_bruto": g_dia_bruto,
                         "Persona_gr_semana": g_sem_persona,
                         "Hogar_kg_semana": inputs["n_sem_hogar"],
-                        # REPORTE DE COSTOS MULTI-VARIABLE (SALIDA)
                         "Costo_Dia_Persona_Tienda": round(c_dia_tienda, 2),
                         "Costo_Dia_Persona_Super": round(c_dia_super, 2),
                         "Costo_Dia_Persona_Plaza": round(c_dia_plaza, 2),
@@ -219,16 +202,18 @@ if es_correo_valido and territorialidad != "":
                     })
                 
                 if not errores_validacion:
-                    df_bloque_nuevo = pd.DataFrame(filas_para_guardar)
-                    archivo_salida = "registros_precios_nutricionales.xlsx"
-                    if os.path.exists(archivo_salida):
-                        df_existente = pd.read_excel(archivo_salida)
+                    try:
+                        # CONEXIÓN OFICIAL DIRECTA A GOOGLE SHEETS
+                        conn = st.connection("gsheets", type=GSheetsConnection)
+                        df_existente = conn.read(ttl=0)
+                        df_bloque_nuevo = pd.DataFrame(filas_para_guardar)
                         df_final = pd.concat([df_existente, df_bloque_nuevo], ignore_index=True)
-                    else:
-                        df_final = df_bloque_nuevo
-                    df_final.to_excel(archivo_salida, index=False)
-                    st.success("🎉 ¡Fabuloso! Toda la canasta regional fue guardada. El Excel ahora incluye el cálculo del costo del Hogar por semana.")
+                        conn.update(data=df_final)
+                        st.success("🎉 ¡Excelente, Marcela! Toda la canasta regional fue guardada y enviada a tu Google Sheets en tiempo real.")
+                    except Exception as sheet_err:
+                        st.error(f"❌ Error al enviar datos a Google Sheets. Revisa la configuración de Secrets. Detalle: {sheet_err}")
     else:
         st.warning(f"⚠️ No hay alimentos con necesidad en bruto mayor a 0 gramos para la territorialidad '{territorialidad}'.")
 elif es_correo_valido:
     st.info("💡 Por favor, define el departamento y municipio para generar la lista de alimentos de tu territorialidad.")
+
