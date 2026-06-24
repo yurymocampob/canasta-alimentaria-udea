@@ -4,9 +4,9 @@ from datetime import datetime
 import os
 import requests
 
-# --- REGISTRO HORA DE INICIO
+# --- REGISTRO HORA DE INICIO (MODIFICADO: OBJETO NATIVO DATETIME PARA RESTA MATEMÁTICA)
 if "hora_inicio" not in st.session_state:
-    st.session_state["hora_inicio"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    st.session_state["hora_inicio"] = datetime.now()
 # -----------------------------------------------------
 
 st.set_page_config(page_title="Precio de alimentos por territorialidades alimentarias", page_icon="🌾", layout="centered")
@@ -149,6 +149,13 @@ if es_correo_valido and territorialidad != "":
                 "n_dia_bruto": n_dia_bruto, "n_sem_persona": n_sem_persona, "n_sem_hogar": n_sem_hogar,
                 "subgrupo": subgrupo, "grupo": grupo
             }
+        # --- REQUERIMIENTO 2: AGREGAR CAJÓN DE OBSERVACIONES EN INTERFAZ ---
+        st.subheader("3. Observaciones del Formulario")
+        observaciones_usuario = st.text_area(
+            "Escribe aquí comentarios adicionales sobre los precios, novedades o inconvenientes en los establecimientos:", 
+            placeholder="Ej. Algunos productos específicos no se encontraban disponibles en la plaza de mercado...",
+            key="txt_observaciones"
+        ).strip()
 
         st.markdown("<br>", unsafe_allow_html=True)
         enviar = st.button("💾 GUARDAR ENCUESTA COMPLETA", type="primary")
@@ -161,7 +168,19 @@ if es_correo_valido and territorialidad != "":
             else:
                 errores_validacion = False
                 filas_para_guardar = []
-                id_encuesta = datetime.now().strftime("%Y%m%d%H%M%S")
+                
+                # --- REQUERIMIENTO 1: MÁQUINA DE TIEMPO AUTOMÁTICA ---
+                hora_fin_dt = datetime.now()
+                hora_inicio_dt = st.session_state["hora_inicio"]
+                
+                # Operación matemática directa para extraer la diferencia total en segundos
+                tiempo_total_segundos = int((hora_fin_dt - hora_inicio_dt).total_seconds())
+                
+                # Formatear marcas temporales en texto estándar para almacenamiento estructurado
+                str_hora_inicio = hora_inicio_dt.strftime("%Y-%m-%d %H:%M:%S")
+                str_fecha_hora_envio = hora_fin_dt.strftime("%Y-%m-%d %H:%M:%S")
+                
+                id_encuesta = hora_fin_dt.strftime("%Y%m%d%H%M%S")
 
                 for alim, inputs in datos_capturados.items():
                     if inputs["unidad"] == "---":
@@ -186,14 +205,16 @@ if es_correo_valido and territorialidad != "":
                     c_hogar_super = (inputs["super"] / g_comerciales) * g_sem_hogar if inputs["super"] > 0 else 0
                     c_hogar_plaza = (inputs["plaza"] / g_comerciales) * g_sem_hogar if inputs["plaza"] > 0 else 0
                     
+                    # Se anexan al final del arreglo 'str_hora_inicio', 'str(tiempo_total_segundos)' y 'observaciones_usuario'
                     filas_para_guardar.append([
-                        id_encuesta, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), correo_estudiante,
+                        id_encuesta, str_fecha_hora_envio, correo_estudiante,
                         nombre_estudiante, depto_sel, municipio_sel, territorialidad, 
                         inputs["grupo"], inputs["subgrupo"], alim, inputs["unidad"], str(g_comerciales),
                         str(inputs["tienda"]), str(inputs["super"]), str(inputs["plaza"]),
                         str(g_dia_bruto), str(g_sem_persona), str(inputs["n_sem_hogar"]),
                         str(round(c_dia_tienda, 2)), str(round(c_dia_super, 2)), str(round(c_dia_plaza, 2)),
-                        str(round(c_hogar_tienda, 2)), str(round(c_hogar_super, 2)), str(round(c_hogar_plaza, 2))
+                        str(round(c_hogar_tienda, 2)), str(round(c_hogar_super, 2)), str(round(c_hogar_plaza, 2)),
+                        str_hora_inicio, str(tiempo_total_segundos), observaciones_usuario
                     ])
                 
                 if not errores_validacion:
@@ -212,5 +233,6 @@ if es_correo_valido and territorialidad != "":
         st.warning(f"⚠️ No hay alimentos con necesidad en bruto mayor a 0 gramos para la territorialidad '{territorialidad}'.")
 elif es_correo_valido:
     st.info("💡 Por favor, define el departamento y municipio para generar la lista de alimentos de tu territorialidad.")
+
 
     
