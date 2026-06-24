@@ -63,8 +63,8 @@ except Exception as e:
     st.error(f"❌ Error leyendo archivos Excel. Detalle: {e}")
     st.stop()
 
-st.title("🌾Precio de alimentos por territorialidades alimentarias")
-st.write("Formulario para la recolección de los precios de las necesidades alimentarias por territorialidades. Indicaciones:")
+st.title("🌽Precio de alimentos por territorialidades alimentarias")
+st.write("Formulario para la recolección de precios de alimentos de las 13 territorialidades colombianas. Indicaciones:")
 st.write("1. Ingrese con su email institucional")
 st.write("2. Indague y registre los precios de los mismos alimentos y en la misma unidad de medida en los tres expendios.")
 st.write("3. Si un alimento no se encuentra disponible en un expendio, puede consultar por este en un expendio similar.")
