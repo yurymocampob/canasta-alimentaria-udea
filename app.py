@@ -59,6 +59,7 @@ except Exception as e:
 
 st.title("🌾Precio de alimentos por territorialidades alimentarias")
 st.write("Formulario para la recolección de los precios de las necesidades alimentarias por territorialidades. Indicaciones:")
+st.write("1. Ingrese con su email institucional")
 st.write("1. Indague y registre los precios de los mismos alimentos y en la misma unidad de medida en los tres expendios.")
 st.write("2. Si un alimento no se encuentra disponible en un expendio, puede consultar por este en un expendio similar.")
 
@@ -115,9 +116,9 @@ if es_correo_valido and territorialidad != "":
             subgrupo = fila.get("Subgrupo", "General")
             desc_texto = str(fila.get("Descripción", "Variedad específica del producto."))
             
-            n_dia_bruto = float(fila["Persona gr/dia (bruto)"])
-            n_sem_persona = float(fila["Persona gr/semana"])
-            n_sem_hogar = float(fila["Hogar kg/semana"])
+            n_dia_bruto = round(float(fila["Persona gr/dia (bruto)"]), 1) 
+            n_sem_persona = roudn(float(fila["Persona gr/semana"]), 1)
+            n_sem_hogar = round(float(fila["Hogar kg/semana"]), 1)
             
             if desc_texto == "nan" or desc_texto == "" or desc_texto == "None":
                 desc_texto = f"Variedad correspondiente a {alimento_nombre} ({subgrupo})."
