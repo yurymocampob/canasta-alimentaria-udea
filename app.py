@@ -60,8 +60,8 @@ except Exception as e:
 st.title("🌾Precio de alimentos por territorialidades alimentarias")
 st.write("Formulario para la recolección de los precios de las necesidades alimentarias por territorialidades. Indicaciones:")
 st.write("1. Ingrese con su email institucional")
-st.write("1. Indague y registre los precios de los mismos alimentos y en la misma unidad de medida en los tres expendios.")
-st.write("2. Si un alimento no se encuentra disponible en un expendio, puede consultar por este en un expendio similar.")
+st.write("2. Indague y registre los precios de los mismos alimentos y en la misma unidad de medida en los tres expendios.")
+st.write("3. Si un alimento no se encuentra disponible en un expendio, puede consultar por este en un expendio similar.")
 
 st.subheader("1. Validación Institucional y Ubicación")
 correo_estudiante = st.text_input("Correo Institucional (@udea.edu.co) *", key="corr_est").strip().lower()
@@ -125,17 +125,17 @@ if es_correo_valido and territorialidad != "":
 
             st.markdown(f"### 🍏 {alimento_nombre}")
             st.markdown(f"**Persona:** {n_dia_bruto} g/día (Bruto) | **Hogar:** {n_sem_hogar} kg/semana")
-            st.caption(f"🔬 *Especificación técnica:* {desc_texto}")
+            st.caption(f"🔬 *Descripción:* {desc_texto}")
             
             col1, col2, col3, col4 = st.columns([1.5, 1, 1, 1])
             with col1:
                 u_sel = st.selectbox(f"Unidad ({alimento_nombre})", ["---"] + list(DICCIONARIO_UNIDADES_GRAMOS.keys()), key=f"uni_{index}")
             with col2:
-                p_tienda = st.number_input(f"Tienda ($)", min_value=0, step=50, value=0, key=f"tien_{index}")
+                p_tienda = st.number_input(f"Tienda ($)", min_value=0, step=500, value=0, key=f"tien_{index}")
             with col3:
-                p_super = st.number_input(f"Super ($)", min_value=0, step=50, value=0, key=f"sup_{index}")
+                p_super = st.number_input(f"Super ($)", min_value=0, step=500, value=0, key=f"sup_{index}")
             with col4:
-                p_plaza = st.number_input(f"Plaza ($)", min_value=0, step=50, value=0, key=f"plaz_{index}")
+                p_plaza = st.number_input(f"Plaza ($)", min_value=0, step=500, value=0, key=f"plaz_{index}")
             st.markdown("---")
             
             datos_capturados[alimento_nombre] = {
