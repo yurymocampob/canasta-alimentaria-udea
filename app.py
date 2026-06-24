@@ -65,9 +65,8 @@ except Exception as e:
 
 st.title("🌽Precio de alimentos por territorialidades alimentarias")
 st.write("Formulario para la recolección de precios de alimentos de las 13 territorialidades colombianas discriminados por tienda, plaza de mercado y supermercado. Indicaciones:")
-st.write("1. Ingrese con su email institucional")
-st.write("2. Indague y registre los precios de los mismos alimentos y en la misma unidad de medida en los tres expendios.")
-st.write("3. Si un alimento no se encuentra disponible en un expendio, puede consultar por este en un expendio similar.")
+st.write("1. Ingrese a la aplicación con su email institucional")
+st.write("2. Registre los precios de los alimentos en la misma unidad de medida para los tres expendios.")
 
 st.subheader("1. Validación Institucional y Ubicación")
 correo_estudiante = st.text_input("Correo Institucional (@udea.edu.co) *", key="corr_est").strip().lower()
