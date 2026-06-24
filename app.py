@@ -224,7 +224,7 @@ if es_correo_valido and territorialidad != "":
                         
                         respuesta = requests.post(url_cartero, json=filas_para_guardar)
                         if respuesta.status_code == 200:
-                            st.success("🎉 ¡Excelente, Marcela! Toda la canasta regional fue guardada y enviada a tu Google Sheets en tiempo real.")
+                            st.success("🎉 ¡Excelente! Los precios fueron guardados y enviados")
                         else:
                             st.error("❌ Error al transmitir los datos. Verifica la implementación del Script.")
                     except Exception as err:
