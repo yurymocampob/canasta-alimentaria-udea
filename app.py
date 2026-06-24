@@ -117,7 +117,7 @@ if es_correo_valido and territorialidad != "":
             desc_texto = str(fila.get("Descripción", "Variedad específica del producto."))
             
             n_dia_bruto = round(float(fila["Persona gr/dia (bruto)"]), 1) 
-            n_sem_persona = roudn(float(fila["Persona gr/semana"]), 1)
+            n_sem_persona = round(float(fila["Persona gr/semana"]), 1)
             n_sem_hogar = round(float(fila["Hogar kg/semana"]), 1)
             
             if desc_texto == "nan" or desc_texto == "" or desc_texto == "None":
