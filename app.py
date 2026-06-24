@@ -4,13 +4,19 @@ from datetime import datetime
 import os
 import requests
 
+# --- REGISTRO HORA DE INICIO
+if "hora_inicio" not in st.session_state:
+    st.session_state["hora_inicio"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+# -----------------------------------------------------
+
 st.set_page_config(page_title="Precio de alimentos por territorialidades alimentarias", page_icon="🌾", layout="centered")
 
 # --- CONVERSIÓN DE UNIDADES COMERCIALES A GRAMOS ---
 DICCIONARIO_UNIDADES_GRAMOS = {
     "Kilogramo (kg)": 1000,
     "Libra (500g)": 500,
-    "Litro (L)": 1000,       
+    "Litro (L)": 1000,
+    "Medio litro (500ml)": 500,
     "Unidad": 100,           
     "Atado": 300,                       
 }
@@ -123,7 +129,7 @@ if es_correo_valido and territorialidad != "":
             if desc_texto == "nan" or desc_texto == "" or desc_texto == "None":
                 desc_texto = f"Variedad correspondiente a {alimento_nombre} ({subgrupo})."
 
-            st.markdown(f"### 🍏 {alimento_nombre}")
+            st.markdown(f"### 🍲 {alimento_nombre}")
             st.markdown(f"**Persona:** {n_dia_bruto} g/día (Bruto) | **Hogar:** {n_sem_hogar} kg/semana")
             st.caption(f"🔬 *Descripción:* {desc_texto}")
             
