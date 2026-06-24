@@ -4,7 +4,7 @@ from datetime import datetime
 import os
 import requests
 
-st.set_page_config(page_title="Canasta Alimentaria UdeA", page_icon="🌾", layout="centered")
+st.set_page_config(page_title="Precio de alimentos por territorialidades alimentarias", page_icon="🌾", layout="centered")
 
 # --- CONVERSIÓN DE UNIDADES COMERCIALES A GRAMOS ---
 DICCIONARIO_UNIDADES_GRAMOS = {
@@ -12,9 +12,7 @@ DICCIONARIO_UNIDADES_GRAMOS = {
     "Libra (500g)": 500,
     "Litro (L)": 1000,       
     "Unidad": 100,           
-    "Atado": 300,            
-    "Mano": 400,             
-    "Cubeta": 1800           
+    "Atado": 300,                       
 }
 
 # --- LECTURA DIRECTA DE DATOS UNIFICADOS ---
@@ -59,8 +57,10 @@ except Exception as e:
     st.error(f"❌ Error leyendo archivos Excel. Detalle: {e}")
     st.stop()
 
-st.title("🌾 Levantamiento de Precios - Canasta UdeA")
-st.write("Formulario oficial de recolección simultánea y costeo familiar/nutricional.")
+st.title("🌾Precio de alimentos por territorialidades alimentarias")
+st.write("Formulario para la recolección de los precios de las necesidades alimentarias por territorialidades. Indicaciones:")
+st.write("1. Indague y registre los precios de los mismos alimentos y en la misma unidad de medida en los tres expendios.")
+st.write("2. Si un alimento no se encuentra disponible en un expendio, puede consultar por este en un expendio similar.")
 
 st.subheader("1. Validación Institucional y Ubicación")
 correo_estudiante = st.text_input("Correo Institucional (@udea.edu.co) *", key="corr_est").strip().lower()
